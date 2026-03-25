@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import './App.css';
 
 const SERVICE_OPTIONS = ['마케팅', '웹 개발', '자동화', '디자인'];
@@ -15,6 +15,13 @@ interface FormData {
   phone: string;
   email: string;
   contactMethod: string;
+  // 마케팅 토스 플로우
+  marketingPurpose: string[];
+  adChannels: string[];
+  marketingExperience: string;
+  websiteUrl: string;
+  businessName: string;
+  region: string;
 }
 
 type ErrorMap = Partial<Record<keyof FormData | 'services', string>>;
@@ -200,14 +207,117 @@ function App() {
   const [consultationDone, setConsultationDone] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    budget: '', timeline: '', description: '', name: '', phone: '', email: '', contactMethod: '전화',
+    budget: '', timeline: '', description: '', name: '', phone: '', email: '', contactMethod: '전화', marketingPurpose: [], adChannels: [], marketingExperience: '', websiteUrl: '', businessName: '', region: '',
   });
   const [errors, setErrors] = useState<ErrorMap>({});
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [marketingStep, setMarketingStep] = useState(1);
+  const [marketingDone, setMarketingDone] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+
+  const CATEGORY_FLOW_CONFIG: Record<string, { step1Title: string; purposeLabel: string; purposes: string[]; channelLabel: string; channels: string[] }> = {
+    '마케팅': {
+      step1Title: '마케팅 목적을\n알려주세요',
+      purposeLabel: '마케팅 목적',
+      purposes: ['브랜드 인지도 향상', '매출/전환 증대', '신규 고객 확보', '리텐션/재구매', '앱 설치 유도', '기타'],
+      channelLabel: '희망 광고 채널',
+      channels: ['인스타그램', '페이스북', '구글 광고', '네이버 광고', '유튜브', '틱톡', '카카오', '기타'],
+    },
+    '웹 개발': {
+      step1Title: '어떤 프로젝트가\n필요하신가요?',
+      purposeLabel: '프로젝트 유형',
+      purposes: ['기업 웹사이트', '랜딩페이지', '쇼핑몰', '웹앱/서비스', '리뉴얼', '기타'],
+      channelLabel: '필요 기능',
+      channels: ['결제 시스템', '회원가입/로그인', '게시판', '예약 시스템', '관리자 페이지', '반응형 디자인', '기타'],
+    },
+    '자동화': {
+      step1Title: '어떤 업무를\n자동화하고 싶으신가요?',
+      purposeLabel: '자동화 목적',
+      purposes: ['업무 효율화', '고객 응대 자동화', '데이터 수집/관리', '알림/리포트 자동화', '마케팅 자동화', '기타'],
+      channelLabel: '사용 중인 도구',
+      channels: ['슬랙', '노션', '구글 시트', '카카오톡', 'CRM', '자체 시스템', '기타'],
+    },
+    '디자인': {
+      step1Title: '어떤 디자인이\n필요하신가요?',
+      purposeLabel: '디자인 목적',
+      purposes: ['브랜딩/CI', 'UI/UX 디자인', '콘텐츠 디자인', '패키지 디자인', '리브랜딩', '기타'],
+      channelLabel: '필요 작업물',
+      channels: ['로고', '웹/앱 디자인', 'SNS 배너/콘텐츠', '명함/인쇄물', '영상 썸네일', '브랜드 가이드', '기타'],
+    },
+  };
+
+  // 가치 제안 문구 로테이션
+  const VALUE_PROPS = [
+    '평균 2주 안에\n프로젝트를 런칭합니다',
+    '전담 매니저가\n1:1로 배정됩니다',
+    '결과 불만족시\n100% 환불해드립니다',
+    '150개 이상의 프로젝트를\n성공적으로 완료했습니다',
+  ];
+  const [valuePropIndex, setValuePropIndex] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setValuePropIndex((prev) => (prev + 1) % VALUE_PROPS.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [VALUE_PROPS.length]);
+
+  // PC 드래그 스크롤
+  const dragState = useRef({ isDown: false, startX: 0, scrollLeft: 0 });
+  const useDragScroll = useCallback(() => ({
+    onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      dragState.current = { isDown: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+      el.style.cursor = 'grabbing';
+    },
+    onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+      dragState.current.isDown = false;
+      e.currentTarget.style.cursor = 'grab';
+    },
+    onMouseUp: (e: React.MouseEvent<HTMLDivElement>) => {
+      dragState.current.isDown = false;
+      e.currentTarget.style.cursor = 'grab';
+    },
+    onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!dragState.current.isDown) return;
+      e.preventDefault();
+      const el = e.currentTarget;
+      const x = e.pageX - el.offsetLeft;
+      el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
+    },
+  }), []);
+  const dragHandlers = useDragScroll();
+
+  // 스크롤 기반 등장 애니메이션 (Intersection Observer)
+  const revealObserver = useRef<IntersectionObserver | null>(null);
+  useEffect(() => {
+    revealObserver.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            revealObserver.current?.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    return () => revealObserver.current?.disconnect();
+  }, []);
+
+  const revealRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && revealObserver.current) {
+      revealObserver.current.observe(el);
+    }
+  }, []);
 
   const handleCategoryClick = (categoryName: string) => {
     setSelectedCategory(categoryName);
-    setCurrentView('category');
+    setMarketingStep(1);
+    setMarketingDone(false);
+    setShowContactModal(false);
+    setFormData(prev => ({ ...prev, marketingPurpose: [], adChannels: [], marketingExperience: '', websiteUrl: '', businessName: '', budget: '', timeline: '', phone: '', name: '', region: '' }));
+    setErrors({});
+    setCurrentView('marketing-flow');
     setActiveTab('list');
   };
 
@@ -218,6 +328,10 @@ function App() {
   };
 
   const handleBack = () => {
+    if (currentView === 'marketing-flow') {
+      handleMarketingBack();
+      return;
+    }
     if (currentView === 'consultation') {
       if (consultationDone) {
         setCurrentView('home');
@@ -299,67 +413,60 @@ function App() {
 
   const renderHomeView = () => (
     <main className="main-content flex-col">
-      {/* Banner */}
-      <section className="banner-section">
-        <div className="banner flex-col" style={{ position: 'relative', overflow: 'hidden' }}>
-          <h2 className="banner-title" style={{ position: 'relative', zIndex: 1 }}>비즈니스의 성장을<br />디자인합니다</h2>
-          <div className="banner-action flex-row justify-between" style={{ position: 'relative', zIndex: 1 }}>
-            <span className="banner-subtitle">무료 컨설팅 신청하기</span>
-            <button className="banner-btn flex-row justify-center" onClick={() => goToConsultation()}>
-              신청
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
+      {/* Hero: Social Proof + Value Proposition */}
+      <section className="hero-section">
+        <div className="hero-card flex-col">
+          <div className="hero-social-proof flex-row items-center">
+            <span className="hero-pulse" />
+            <span className="hero-social-text">이번 달 <strong>127건</strong>의 상담이 진행되었습니다</span>
           </div>
+          <h2 className="hero-title hero-title-rotate" key={valuePropIndex}>
+            {VALUE_PROPS[valuePropIndex].split('\n').map((line, i) => (
+              <span key={i}>{line}{i === 0 && <br/>}</span>
+            ))}
+          </h2>
         </div>
       </section>
 
       {/* Service Navigation */}
       <section className="search-section flex-col">
-        <div style={{ padding: '20px 20px 12px' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>서비스 찾기</span>
+        <div className="service-guide-character flex-col items-center" style={{ padding: '12px 20px 0' }}>
+          <div className="speech-bubble-top">
+            <span>어떤 서비스가 필요하신가요?</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginTop: 2, display: 'block' }}>필요한 서비스를 아래에서 선택해보세요!</span>
+          </div>
+          <div style={{ width: 160, height: 120, overflow: 'hidden', marginTop: -8, marginBottom: 16 }}>
+            <img src="/mascot-thinking.png" alt="안내 캐릭터" style={{ width: '100%', height: 'auto', objectFit: 'cover', transform: 'scale(1.6)', transformOrigin: 'center top' }} />
+          </div>
         </div>
-        <div className="search-cards flex-col" style={{ padding: '0 20px', gap: 10 }}>
-          <div className="search-card flex-row items-center" onClick={() => handleCategoryClick('마케팅')}>
-            <div className="search-card-icon" style={{ background: '#111' }}>
-              <img src="/icon-marketing.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <div className="category-grid" style={{ padding: '0 20px 8px' }}>
+          <div className="category-grid-card" style={{ animationDelay: '0s' }} onClick={() => handleCategoryClick('마케팅')}>
+            <div className="category-grid-icon" style={{ background: '#FEE2E2' }}>
+              <img src="/icon-marketing.png" alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
             </div>
-            <div className="flex-col" style={{ flex: 1, gap: 2 }}>
-              <span className="search-card-title">마케팅</span>
-              <span className="search-card-desc">SNS 광고, SEO, 콘텐츠 마케팅</span>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <span className="category-grid-title">마케팅</span>
+            <span className="category-grid-desc">SNS 광고 · SEO</span>
           </div>
-          <div className="search-card flex-row items-center" onClick={() => handleCategoryClick('웹 개발')}>
-            <div className="search-card-icon" style={{ background: '#111' }}>
-              <img src="/icon-webdev.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+          <div className="category-grid-card" style={{ animationDelay: '0.08s' }} onClick={() => handleCategoryClick('웹 개발')}>
+            <div className="category-grid-icon" style={{ background: '#DBEAFE' }}>
+              <img src="/icon-webdev.png" alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
             </div>
-            <div className="flex-col" style={{ flex: 1, gap: 2 }}>
-              <span className="search-card-title">웹 개발</span>
-              <span className="search-card-desc">웹사이트, 랜딩페이지, 쇼핑몰</span>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <span className="category-grid-title">웹 개발</span>
+            <span className="category-grid-desc">웹사이트 · 쇼핑몰</span>
           </div>
-          <div className="search-card flex-row items-center" onClick={() => handleCategoryClick('자동화')}>
-            <div className="search-card-icon" style={{ background: '#111' }}>
-              <img src="/icon-automation.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+          <div className="category-grid-card" style={{ animationDelay: '0.16s' }} onClick={() => handleCategoryClick('자동화')}>
+            <div className="category-grid-icon" style={{ background: '#D1FAE5' }}>
+              <img src="/icon-automation.png" alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
             </div>
-            <div className="flex-col" style={{ flex: 1, gap: 2 }}>
-              <span className="search-card-title">자동화</span>
-              <span className="search-card-desc">업무 자동화, 챗봇, 데이터 연동</span>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <span className="category-grid-title">자동화</span>
+            <span className="category-grid-desc">챗봇 · 데이터 연동</span>
           </div>
-          <div className="search-card flex-row items-center" onClick={() => handleCategoryClick('디자인')}>
-            <div className="search-card-icon" style={{ background: '#111' }}>
-              <img src="/icon-design.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+          <div className="category-grid-card" style={{ animationDelay: '0.24s' }} onClick={() => handleCategoryClick('디자인')}>
+            <div className="category-grid-icon" style={{ background: '#EDE9FE' }}>
+              <img src="/icon-design.png" alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
             </div>
-            <div className="flex-col" style={{ flex: 1, gap: 2 }}>
-              <span className="search-card-title">디자인</span>
-              <span className="search-card-desc">브랜딩, UI/UX, 콘텐츠 디자인</span>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <span className="category-grid-title">디자인</span>
+            <span className="category-grid-desc">브랜딩 · UI/UX</span>
           </div>
         </div>
       </section>
@@ -420,49 +527,49 @@ function App() {
       {/* Customer Reviews */}
       <section className="reviews-section flex-col">
         <h3 className="section-title">고객 후기</h3>
-        <div className="h-scroll flex-row no-scrollbar" style={{ padding: '0 20px' }}>
+        <div className="h-scroll flex-row no-scrollbar" style={{ padding: '0 20px', cursor: 'grab' }} {...dragHandlers}>
           <div className="review-card flex-col">
-            <div className="review-stars">★★★★★</div>
-            <p className="review-text">"SNS 광고를 직접 해보다가 의뢰했는데, 첫 달부터 ROAS가 3배 이상 나왔어요."</p>
+            <div className="review-stars">⭐⭐⭐⭐⭐</div>
+            <p className="review-text">"첫 달부터 ROAS가 3배 이상 나왔어요."</p>
             <div className="review-author flex-row items-center">
-              <div className="author-avatar">K</div>
+              <div className="author-avatar">👩‍💼</div>
               <div className="author-info flex-col">
                 <span className="author-name">김OO 대표</span>
                 <span className="author-company">패션 브랜드</span>
               </div>
             </div>
             <div className="review-result flex-row justify-between items-center">
-              <span className="result-label">성과</span>
+              <span className="result-label">🏆 성과</span>
               <span className="result-value">ROAS 420% 달성</span>
             </div>
           </div>
           <div className="review-card flex-col">
-            <div className="review-stars">★★★★★</div>
-            <p className="review-text">"웹사이트 리뉴얼 후 문의량이 2배 넘게 늘었습니다. 디자인도 만족스럽고 소통이 빨라서 좋았어요."</p>
+            <div className="review-stars">⭐⭐⭐⭐⭐</div>
+            <p className="review-text">"문의량이 2배 넘게 늘었습니다."</p>
             <div className="review-author flex-row items-center">
-              <div className="author-avatar">이</div>
+              <div className="author-avatar">👨‍💻</div>
               <div className="author-info flex-col">
                 <span className="author-name">이OO 팀장</span>
                 <span className="author-company">IT 스타트업</span>
               </div>
             </div>
             <div className="review-result flex-row justify-between items-center">
-              <span className="result-label">성과</span>
+              <span className="result-label">🏆 성과</span>
               <span className="result-value">문의량 230% 증가</span>
             </div>
           </div>
           <div className="review-card flex-col">
-            <div className="review-stars">★★★★★</div>
-            <p className="review-text">"반복 업무 자동화로 매달 40시간 이상을 절약하고 있습니다. 투자 대비 효과가 확실해요."</p>
+            <div className="review-stars">⭐⭐⭐⭐⭐</div>
+            <p className="review-text">"매달 40시간 이상을 절약하고 있습니다."</p>
             <div className="review-author flex-row items-center">
-              <div className="author-avatar">박</div>
+              <div className="author-avatar">🏭</div>
               <div className="author-info flex-col">
                 <span className="author-name">박OO 이사</span>
                 <span className="author-company">제조업체</span>
               </div>
             </div>
             <div className="review-result flex-row justify-between items-center">
-              <span className="result-label">성과</span>
+              <span className="result-label">🏆 성과</span>
               <span className="result-value">월 40시간 절감</span>
             </div>
           </div>
@@ -470,15 +577,7 @@ function App() {
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="bottom-cta-section">
-        <div className="bottom-cta-card flex-col">
-          <img src="/mascot-thinking.png" alt="" style={{ height: 70, width: 'auto', marginBottom: 8 }} />
-          <h3 className="bottom-cta-title">어떤 서비스가 필요한지<br/>모르겠다면?</h3>
-          <p className="bottom-cta-desc">전문 매니저가 무료로 상담해드립니다</p>
-          <button className="bottom-cta-btn" onClick={() => goToConsultation()}>무료 상담 받기</button>
-        </div>
-      </section>
+
 
       {/* FAQ */}
       <section className="faq-section flex-col">
@@ -775,6 +874,210 @@ function App() {
     );
   };
 
+  const toggleMarketingPurpose = (p: string) => {
+    setFormData(prev => ({
+      ...prev,
+      marketingPurpose: prev.marketingPurpose.includes(p)
+        ? prev.marketingPurpose.filter(x => x !== p)
+        : [...prev.marketingPurpose, p],
+    }));
+  };
+
+  const toggleAdChannel = (c: string) => {
+    setFormData(prev => ({
+      ...prev,
+      adChannels: prev.adChannels.includes(c)
+        ? prev.adChannels.filter(x => x !== c)
+        : [...prev.adChannels, c],
+    }));
+  };
+
+  const handleMarketingNext = () => {
+    if (marketingStep === 1) {
+      setErrors({});
+      setMarketingStep(2);
+    } else if (marketingStep === 2) {
+      setErrors({});
+      setShowContactModal(true);
+    }
+  };
+
+  const handleContactSubmit = () => {
+    const e: ErrorMap = {};
+    if (!formData.name.trim()) e.name = '이름을 입력해주세요.';
+    if (!formData.phone.trim()) e.phone = '연락처를 입력해주세요.';
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setErrors({});
+    setShowContactModal(false);
+    setMarketingDone(true);
+  };
+
+  const handleMarketingBack = () => {
+    if (marketingStep > 1) {
+      setMarketingStep(s => s - 1);
+      setErrors({});
+    } else {
+      setCurrentView('home');
+      setActiveTab('home');
+    }
+  };
+
+  const renderMarketingFlow = () => {
+    if (marketingDone) {
+      return (
+        <div className="toss-flow-container flex-col items-center" style={{ justifyContent: 'center', minHeight: '70vh', gap: 16, padding: 20 }}>
+          <div style={{ fontSize: 48 }}>🎉</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>신청이 완료되었습니다!</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
+            전문 매니저가 빠르게 연락드리겠습니다.<br/>감사합니다.
+          </p>
+          <button className="toss-next-btn" style={{ marginTop: 16 }} onClick={() => {
+            setCurrentView('home');
+            setActiveTab('home');
+            setMarketingDone(false);
+            setMarketingStep(1);
+          }}>홈으로 돌아가기</button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="toss-flow-container flex-col">
+
+        {/* Step Content */}
+        <div className="toss-step-content" key={marketingStep}>
+          {marketingStep === 1 && CATEGORY_FLOW_CONFIG[selectedCategory] && (() => {
+            const cfg = CATEGORY_FLOW_CONFIG[selectedCategory];
+            return (
+              <div className="toss-step flex-col">
+                <div className="toss-step-header">
+                  <h2 className="toss-step-title">{cfg.step1Title.split('\n').map((l, i) => <span key={i}>{l}{i === 0 && <br/>}</span>)}</h2>
+                </div>
+
+                <div className="toss-section">
+                  <h3 className="toss-section-title">{cfg.purposeLabel}</h3>
+                  <div className="toss-chip-grid">
+                    {cfg.purposes.map(p => (
+                      <button key={p} className={`toss-chip${formData.marketingPurpose.includes(p) ? ' selected' : ''}`} onClick={() => toggleMarketingPurpose(p)}>{p}</button>
+                    ))}
+                    <button className={`toss-chip toss-chip-skip${formData.marketingPurpose.includes('잘 모르겠어요') ? ' selected' : ''}`} onClick={() => setFormData(prev => ({ ...prev, marketingPurpose: ['잘 모르겠어요'] }))}>잘 모르겠어요</button>
+                  </div>
+                </div>
+
+                {formData.marketingPurpose.length > 0 && (
+                  <div className="toss-section toss-reveal">
+                    <h3 className="toss-section-title">{cfg.channelLabel}</h3>
+                    <div className="toss-chip-grid">
+                      {cfg.channels.map(c => (
+                        <button key={c} className={`toss-chip${formData.adChannels.includes(c) ? ' selected' : ''}`} onClick={() => toggleAdChannel(c)}>{c}</button>
+                      ))}
+                      <button className={`toss-chip toss-chip-skip${formData.adChannels.includes('잘 모르겠어요') ? ' selected' : ''}`} onClick={() => setFormData(prev => ({ ...prev, adChannels: ['잘 모르겠어요'] }))}>잘 모르겠어요</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {marketingStep === 2 && (
+            <div className="toss-step flex-col">
+              <div className="toss-step-header">
+                <h2 className="toss-step-title">비즈니스 정보를<br/>알려주세요</h2>
+              </div>
+
+              <div className="toss-section">
+                <h3 className="toss-section-title">지역</h3>
+                <input
+                  className="toss-input"
+                  type="text"
+                  placeholder="예: 서울 강남구"
+                  value={formData.region}
+                  onChange={e => setFormData(prev => ({ ...prev, region: e.target.value }))}
+                />
+              </div>
+
+              {formData.region.trim() && (
+                <div className="toss-section toss-reveal">
+                  <h3 className="toss-section-title">상호명</h3>
+                  <input
+                    className="toss-input"
+                    type="text"
+                    placeholder="회사 또는 브랜드명"
+                    value={formData.businessName}
+                    onChange={e => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                  />
+                </div>
+              )}
+
+              {formData.region.trim() && formData.businessName.trim() && (
+                <div className="toss-section toss-reveal">
+                  <h3 className="toss-section-title">웹사이트 또는 운영 중인 마케팅 채널</h3>
+                  <input
+                    className="toss-input"
+                    type="url"
+                    placeholder="https:// 또는 @인스타그램 계정"
+                    value={formData.websiteUrl}
+                    onChange={e => setFormData(prev => ({ ...prev, websiteUrl: e.target.value }))}
+                  />
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>없으면 건너뛰어도 됩니다</p>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {/* Bottom Buttons */}
+        <div className="toss-bottom-bar">
+          {marketingStep > 1 && (
+            <button className="toss-back-btn" onClick={handleMarketingBack}>이전</button>
+          )}
+          <button className="toss-next-btn" onClick={handleMarketingNext}>
+            {marketingStep === 2 ? '다음' : '다음'}
+          </button>
+        </div>
+
+        {/* Contact Modal */}
+        {showContactModal && (
+          <div className="contact-modal-overlay" onClick={() => { setShowContactModal(false); setErrors({}); }}>
+            <div className="contact-modal" onClick={e => e.stopPropagation()}>
+              <h3 className="contact-modal-title">연락처를 알려주세요</h3>
+              <p className="contact-modal-desc">전문 매니저가 빠르게 연락드리겠습니다</p>
+
+              <div className="toss-section">
+                <h3 className="toss-section-title">이름 <span className="toss-required">*</span></h3>
+                <input
+                  className="toss-input"
+                  type="text"
+                  placeholder="담당자 이름"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
+                {errors.name && <span className="toss-error">{errors.name}</span>}
+              </div>
+
+              <div className="toss-section" style={{ marginTop: 16 }}>
+                <h3 className="toss-section-title">연락처 <span className="toss-required">*</span></h3>
+                <input
+                  className="toss-input"
+                  type="tel"
+                  placeholder="010-0000-0000"
+                  value={formData.phone}
+                  onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                />
+                {errors.phone && <span className="toss-error">{errors.phone}</span>}
+              </div>
+
+              <button className="toss-next-btn" style={{ marginTop: 24, width: '100%' }} onClick={handleContactSubmit}>
+                신청 완료
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderCategoryView = () => {
     const catInfo = CATEGORY_DATA.find(c => c.name === selectedCategory);
     const catServices = SERVICES_DATA.filter(s => s.category === selectedCategory);
@@ -783,73 +1086,83 @@ function App() {
     return (
       <div className="category-detail-container">
         {/* Hero */}
-        <div className="category-hero" style={{ background: categoryGradient(selectedCategory) }}>
-          <div className="category-hero-overlay" />
-          <div className="category-hero-content" style={{ position: 'relative', zIndex: 1 }}>
-            <span className="category-hero-tag">{catInfo.name}</span>
-            <h2 className="category-hero-title">{catInfo.headline}</h2>
-            <p className="category-hero-desc">{catInfo.description}</p>
+        <div className="reveal-section revealed" ref={revealRef}>
+          <div className="category-hero" style={{ background: categoryGradient(selectedCategory) }}>
+            <div className="category-hero-overlay" />
+            <div className="category-hero-content" style={{ position: 'relative', zIndex: 1 }}>
+              <span className="category-hero-tag">{catInfo.name}</span>
+              <h2 className="category-hero-title">{catInfo.headline}</h2>
+              <p className="category-hero-desc">{catInfo.description}</p>
+            </div>
+            <img src="/mascot-pointing.png" alt="" style={{ position: 'absolute', right: 12, bottom: 0, height: 110, width: 'auto', pointerEvents: 'none', zIndex: 0 }} />
           </div>
-          <img src="/mascot-pointing.png" alt="" style={{ position: 'absolute', right: 12, bottom: 0, height: 110, width: 'auto', pointerEvents: 'none', zIndex: 0 }} />
         </div>
 
         {/* Stats */}
-        <div className="category-stats flex-row">
-          {catInfo.stats.map((s, i) => (
-            <div key={i} className="category-stat-item flex-col">
-              <span className="category-stat-value">{s.value}</span>
-              <span className="category-stat-label">{s.label}</span>
-            </div>
-          ))}
+        <div className="reveal-section" ref={revealRef} style={{ transitionDelay: '0.1s' }}>
+          <div className="category-stats flex-row">
+            {catInfo.stats.map((s, i) => (
+              <div key={i} className="category-stat-item flex-col">
+                <span className="category-stat-value">{s.value}</span>
+                <span className="category-stat-label">{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* What we do */}
-        <div className="category-section">
-          <h3 className="detail-section-title">이런 것들을 합니다</h3>
-          <div className="category-highlights">
-            {catInfo.highlights.map((h, i) => (
-              <div key={i} className="category-highlight-item flex-row items-center">
-                <span className="category-check">✓</span>
-                <span>{h}</span>
-              </div>
-            ))}
+        <div className="reveal-section" ref={revealRef} style={{ transitionDelay: '0.15s' }}>
+          <div className="category-section">
+            <h3 className="detail-section-title">이런 것들을 합니다</h3>
+            <div className="category-highlights">
+              {catInfo.highlights.map((h, i) => (
+                <div key={i} className="category-highlight-item flex-row items-center">
+                  <span className="category-check">✓</span>
+                  <span>{h}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Services in this category */}
-        <div className="category-section">
-          <h3 className="detail-section-title">서비스 목록</h3>
-          <div className="category-service-list">
-            {catServices.map(service => (
-              <div key={service.id} className="category-service-card" onClick={() => handleServiceClick(service)}>
-                <div className="category-service-info flex-col">
-                  <span className="category-service-title">{service.title}</span>
-                  <span className="category-service-desc">{service.description}</span>
+        <div className="reveal-section" ref={revealRef} style={{ transitionDelay: '0.2s' }}>
+          <div className="category-section">
+            <h3 className="detail-section-title">서비스 목록</h3>
+            <div className="category-service-list">
+              {catServices.map(service => (
+                <div key={service.id} className="category-service-card" onClick={() => handleServiceClick(service)}>
+                  <div className="category-service-info flex-col">
+                    <span className="category-service-title">{service.title}</span>
+                    <span className="category-service-desc">{service.description}</span>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Bottom CTA */}
-        <div className="category-cta-section">
-          <button className="detail-cta-btn" style={{ width: '100%' }} onClick={() => {
-            setConsultationStep(2);
-            setConsultationDone(false);
-            setErrors({});
-            setFormData({ budget: '', timeline: '', description: '', name: '', phone: '', email: '', contactMethod: '전화' });
-            setSelectedServices([selectedCategory]);
-            setCurrentView('consultation');
-            setActiveTab('consultation');
-          }}>
-            {selectedCategory} 상담 신청하기
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </button>
+        <div className="reveal-section" ref={revealRef} style={{ transitionDelay: '0.25s' }}>
+          <div className="category-cta-section">
+            <button className="detail-cta-btn" style={{ width: '100%' }} onClick={() => {
+              setConsultationStep(2);
+              setConsultationDone(false);
+              setErrors({});
+              setFormData({ budget: '', timeline: '', description: '', name: '', phone: '', email: '', contactMethod: '전화' });
+              setSelectedServices([selectedCategory]);
+              setCurrentView('consultation');
+              setActiveTab('consultation');
+            }}>
+              {selectedCategory} 상담 신청하기
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -857,6 +1170,7 @@ function App() {
 
   const renderCurrentView = () => {
     if (currentView === 'consultation') return renderConsultationView();
+    if (currentView === 'marketing-flow') return renderMarketingFlow();
     if (currentView === 'detail') return renderDetailView();
     if (currentView === 'category') return renderCategoryView();
     return renderHomeView();
@@ -895,7 +1209,7 @@ function App() {
       {/* Floating CTA removed from home per design decision */}
 
       {/* Bottom Nav - visible on all views except consultation */}
-      {currentView !== 'consultation' && (
+      {currentView !== 'consultation' && currentView !== 'marketing-flow' && (
         <nav className="bottom-nav flex-row justify-between">
           <button
             className={`nav-item flex-col ${activeTab === 'home' ? 'active' : ''}`}

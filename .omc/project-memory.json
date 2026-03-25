@@ -110,20 +110,32 @@
   "hotPaths": [
     {
       "path": "src\\App.tsx",
-      "accessCount": 213,
-      "lastAccessed": 1774425507916,
+      "accessCount": 313,
+      "lastAccessed": 1774443984630,
       "type": "file"
     },
     {
       "path": "src\\App.css",
-      "accessCount": 51,
-      "lastAccessed": 1774425204256,
+      "accessCount": 81,
+      "lastAccessed": 1774443747971,
       "type": "file"
     },
     {
       "path": "src\\index.css",
       "accessCount": 7,
       "lastAccessed": 1774425364401,
+      "type": "file"
+    },
+    {
+      "path": "index.html",
+      "accessCount": 5,
+      "lastAccessed": 1774437579741,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 5,
+      "lastAccessed": 1774437613648,
       "type": "file"
     },
     {
@@ -145,15 +157,27 @@
       "type": "file"
     },
     {
-      "path": "index.html",
+      "path": "vite.config.ts",
       "accessCount": 3,
-      "lastAccessed": 1774425398425,
+      "lastAccessed": 1774435841155,
       "type": "file"
     },
     {
-      "path": "vite.config.ts",
+      "path": "package.json",
+      "accessCount": 3,
+      "lastAccessed": 1774437567282,
+      "type": "file"
+    },
+    {
+      "path": "src\\AGENTS.md",
       "accessCount": 2,
-      "lastAccessed": 1774423661687,
+      "lastAccessed": 1774437554753,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 2,
+      "lastAccessed": 1774437583824,
       "type": "file"
     },
     {
@@ -196,6 +220,36 @@
       "path": "gen-suit.mjs",
       "accessCount": 1,
       "lastAccessed": 1774424726457,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.app.json",
+      "accessCount": 1,
+      "lastAccessed": 1774435841584,
+      "type": "file"
+    },
+    {
+      "path": "eslint.config.js",
+      "accessCount": 1,
+      "lastAccessed": 1774435841869,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1774435848699,
+      "type": "file"
+    },
+    {
+      "path": "src\\main.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774435854295,
+      "type": "file"
+    },
+    {
+      "path": "견적서_리뷰노트.html",
+      "accessCount": 1,
+      "lastAccessed": 1774450738636,
       "type": "file"
     }
   ],

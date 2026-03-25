@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>견적서 - 체험단 리뷰 플랫폼 개발</title>
+  <style>
+    /* ========== 기본 리셋 & 변수 ========== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --accent: #1a3a5c;
+      --accent-light: #2563a8;
+      --accent-muted: #e8eff7;
+      --border: #c8d0d9;
+      --border-strong: #8a9ab0;
+      --text: #1a1a1a;
+      --text-muted: #555;
+      --bg-total: #f0f4f8;
+      --bg-header: #1a3a5c;
+      --page-width: 210mm;
+    }
+
+    /* ========== 화면 레이아웃 ========== */
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      font-size: 10pt;
+      color: var(--text);
+      background: #e5e5e5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: var(--page-width);
+      min-height: 297mm;
+      margin: 20px auto;
+      background: #fff;
+      padding: 18mm 16mm 20mm;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      position: relative;
+    }
+
+    /* ========== 헤더 ========== */
+    .doc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+
+    .doc-title {
+      font-size: 26pt;
+      font-weight: 700;
+      letter-spacing: 12px;
+      color: var(--accent);
+    }
+
+    .doc-meta {
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 9pt;
+      line-height: 1.8;
+    }
+
+    .doc-meta strong {
+      color: var(--text);
+    }
+
+    /* ========== 발신/수신 박스 ========== */
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .party-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .party-box-header {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 9pt;
+      letter-spacing: 3px;
+      padding: 5px 10px;
+    }
+
+    .party-box-body {
+      padding: 10px 12px;
+    }
+
+    .party-row {
+      display: flex;
+      gap: 6px;
+      padding: 3px 0;
+      border-bottom: 1px dotted #ddd;
+      font-size: 9pt;
+      line-height: 1.5;
+    }
+
+    .party-row:last-child {
+      border-bottom: none;
+    }
+
+    .party-label {
+      color: var(--text-muted);
+      min-width: 44px;
+      flex-shrink: 0;
+    }
+
+    .party-value {
+      color: var(--text);
+      flex: 1;
+    }
+
+    /* ========== 섹션 공통 ========== */
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: var(--accent);
+      border-left: 4px solid var(--accent-light);
+      padding-left: 8px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    /* ========== 개요 텍스트 ========== */
+    .overview-text {
+      font-size: 9.5pt;
+      line-height: 1.9;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      background: #fafbfc;
+    }
+
+    /* ========== 테이블 공통 ========== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    thead tr th {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      padding: 7px 8px;
+      text-align: center;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--accent);
+    }
+
+    tbody tr td {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #f8f9fb;
+    }
+
+    tbody tr:hover td {
+      background: var(--accent-muted);
+    }
+
+    /* ========== 기능 범위 테이블 ========== */
+    .func-table th:nth-child(1) { width: 5%; text-align: center; }
+    .func-table th:nth-child(2) { width: 14%; text-align: center; }
+    .func-table th:nth-child(3) { text-align: left; }
+    .func-table th:nth-child(4) { width: 16%; text-align: center; }
+
+    .func-table td:nth-child(1) { text-align: center; color: var(--text-muted); }
+    .func-table td:nth-child(2) { text-align: center; font-weight: 600; color: var(--accent-light); }
+    .func-table td:nth-child(4) { text-align: right; font-family: 'Courier New', monospace; }
+
+    .func-table .total-row td {
+      background: var(--bg-total) !important;
+      font-weight: 700;
+      font-size: 10pt;
+      border-top: 2px solid var(--border-strong);
+    }
+
+    .func-table .total-row td:nth-child(2) {
+      color: var(--text);
+    }
+
+    .func-table .total-row td:last-child {
+      color: var(--accent);
+      font-size: 11pt;
+    }
+
+    .vat-note {
+      text-align: right;
+      font-size: 8.5pt;
+      color: var(--text-muted);
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    /* ========== 기술 스택 ========== */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .tech-item {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      background: #fafbfc;
+    }
+
+    .tech-label {
+      font-size: 8pt;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .tech-value {
+      font-size: 8.5pt;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ========== 일정 테이블 ========== */
+    .schedule-table th:nth-child(1) { width: 28%; }
+    .schedule-table th:nth-child(2) { width: 12%; text-align: center; }
+    .schedule-table th:nth-child(3) { text-align: left; }
+
+    .schedule-table td:nth-child(2) { text-align: center; font-weight: 600; color: var(--accent-light); }
+
+    .schedule-table .total-row td {
+      background: var(--bg-total) !important;
+      font-weight: 700;
+      border-top: 2px solid var(--border-strong);
+    }
+
+    /* ========== 결제 조건 테이블 ========== */
+    .payment-table th:nth-child(1) { width: 14%; text-align: center; }
+    .payment-table th:nth-child(2) { width: 10%; text-align: center; }
+    .payment-table th:nth-child(3) { width: 22%; text-align: center; }
+    .payment-table th:nth-child(4) { text-align: left; }
+
+    .payment-table td:nth-child(1) { text-align: center; font-weight: 600; }
+    .payment-table td:nth-child(2) { text-align: center; }
+    .payment-table td:nth-child(3) { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; color: var(--accent); }
+
+    /* ========== 포함/불포함 ========== */
+    .include-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .include-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .include-box-header {
+      padding: 6px 12px;
+      font-weight: 700;
+      font-size: 9pt;
+      letter-spacing: 1px;
+    }
+
+    .include-box-header.incl {
+      background: var(--accent-muted);
+      color: var(--accent);
+      border-bottom: 1px solid #c0d0e0;
+    }
+
+    .include-box-header.excl {
+      background: #fdf0f0;
+      color: #7a2020;
+      border-bottom: 1px solid #e8c0c0;
+    }
+
+    .include-list {
+      list-style: none;
+      padding: 8px 12px;
+    }
+
+    .include-list li {
+      font-size: 8.5pt;
+      line-height: 1.8;
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .include-list li .icon {
+      font-style: normal;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .include-list li .icon.yes { color: #1a6a3a; }
+    .include-list li .icon.no  { color: #8a2020; }
+
+    /* ========== 특이사항 ========== */
+    .notes-list {
+      list-style: none;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafbfc;
+    }
+
+    .notes-list li {
+      font-size: 9pt;
+      line-height: 1.9;
+      color: var(--text);
+      padding-left: 14px;
+      position: relative;
+    }
+
+    .notes-list li::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: var(--accent-light);
+      font-size: 14pt;
+      line-height: 1.3;
+    }
+
+    /* ========== 하단 서명란 ========== */
+    .footer-statement {
+      text-align: center;
+      font-size: 9.5pt;
+      color: var(--text-muted);
+      margin: 24px 0 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-date {
+      text-align: center;
+      font-size: 10pt;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 28px;
+    }
+
+    .signature-area {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .signature-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      width: 200px;
+      overflow: hidden;
+    }
+
+    .signature-box-header {
+      background: var(--accent);
+      color: #fff;
+      font-size: 9pt;
+      font-weight: 700;
+      padding: 5px 10px;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    .signature-fields {
+      padding: 10px 14px;
+    }
+
+    .sig-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px dotted #ddd;
+      font-size: 8.5pt;
+    }
+
+    .sig-row:last-child {
+      border-bottom: none;
+    }
+
+    .sig-label {
+      color: var(--text-muted);
+      min-width: 36px;
+    }
+
+    .sig-line {
+      flex: 1;
+      border-bottom: 1px solid var(--border-strong);
+      height: 16px;
+    }
+
+    .stamp-area {
+      width: 60px;
+      height: 60px;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8pt;
+      color: var(--border-strong);
+      margin: 10px auto 4px;
+      letter-spacing: 0;
+    }
+
+    /* ========== 페이지 번호 ========== */
+    .page-footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 8pt;
+      color: #aaa;
+    }
+
+    /* ========== 인쇄 최적화 ========== */
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        width: 100%;
+        min-height: auto;
+        margin: 0;
+        padding: 14mm 14mm 18mm;
+        box-shadow: none;
+      }
+
+      .section {
+        page-break-inside: avoid;
+      }
+
+      table {
+        page-break-inside: avoid;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      .parties {
+        page-break-inside: avoid;
+      }
+
+      .include-grid {
+        page-break-inside: avoid;
+      }
+
+      .signature-area {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+
+      /* 인쇄 시 배경색 강제 출력 */
+      thead tr th,
+      .party-box-header,
+      .include-box-header.incl,
+      .include-box-header.excl,
+      .func-table .total-row td,
+      .schedule-table .total-row td,
+      .signature-box-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- ===== 헤더 ===== -->
+    <div class="doc-header">
+      <div class="doc-title">견 &nbsp; 적 &nbsp; 서</div>
+      <div class="doc-meta">
+        <div>프로젝트명: <strong>체험단 리뷰 플랫폼 개발</strong></div>
+        <div>견적일: <strong>2026년 3월 25일</strong></div>
+        <div>유효기간: <strong>견적일로부터 14일</strong></div>
+      </div>
+    </div>
+
+    <!-- ===== 발신 / 수신 ===== -->
+    <div class="parties">
+      <div class="party-box">
+        <div class="party-box-header">발 &nbsp; 신</div>
+        <div class="party-box-body">
+          <div class="party-row">
+            <span class="party-label">상&nbsp;&nbsp;&nbsp;&nbsp;호</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+          <div class="party-row">
+            <span class="party-label">담당자</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+          <div class="party-row">
+            <span class="party-label">연락처</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+          <div class="party-row">
+            <span class="party-label">이메일</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+        </div>
+      </div>
+      <div class="party-box">
+        <div class="party-box-header">수 &nbsp; 신</div>
+        <div class="party-box-body">
+          <div class="party-row">
+            <span class="party-label">상&nbsp;&nbsp;&nbsp;&nbsp;호</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+          <div class="party-row">
+            <span class="party-label">담당자</span>
+            <span class="party-value" style="color:#bbb;">(추후 기입)</span>
+          </div>
+          <div class="party-row" style="visibility:hidden;">
+            <span class="party-label">연락처</span>
+            <span class="party-value"></span>
+          </div>
+          <div class="party-row" style="visibility:hidden;">
+            <span class="party-label">이메일</span>
+            <span class="party-value"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 1. 프로젝트 개요 ===== -->
+    <div class="section">
+      <div class="section-title">1. 프로젝트 개요</div>
+      <div class="overview-text">
+        리뷰노트(reviewnote.co.kr)와 동일한 체험단 리뷰 플랫폼을 신규 개발합니다.<br>
+        광고주와 블로거를 연결하는 체험단 매칭 플랫폼으로,
+        캠페인 등록부터 리뷰 완료까지의 전체 프로세스를 관리합니다.
+      </div>
+    </div>
+
+    <!-- ===== 2. 기능 범위 및 상세 견적 ===== -->
+    <div class="section">
+      <div class="section-title">2. 기능 범위 및 상세 견적</div>
+      <table class="func-table">
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>구분</th>
+            <th style="text-align:left;">상세 내용</th>
+            <th>금액(원)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>회원 시스템</td>
+            <td>소셜 로그인(카카오/네이버), 광고주/블로거 역할 분리, 프로필 관리</td>
+            <td>1,200,000</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>캠페인 관리</td>
+            <td>캠페인 등록/수정/삭제, 카테고리 분류, 검색/필터링, 상세페이지</td>
+            <td>2,000,000</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>신청/선정</td>
+            <td>블로거 신청 → 광고주 선정 → 체험 → 리뷰 제출 → 승인 전체 워크플로우</td>
+            <td>2,000,000</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>마이페이지</td>
+            <td>광고주용(내 캠페인, 신청자 관리), 블로거용(신청 내역, 리뷰 관리)</td>
+            <td>1,200,000</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>커뮤니티/Q&amp;A</td>
+            <td>게시판, 댓글, Q&amp;A 게시판</td>
+            <td>800,000</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>관리자 페이지</td>
+            <td>회원/캠페인/리뷰 관리, 통계 대시보드, 승인 관리</td>
+            <td>1,800,000</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>알림 시스템</td>
+            <td>선정 알림, 리뷰 마감 알림, 이메일/푸시 알림</td>
+            <td>600,000</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>UI/UX 디자인</td>
+            <td>전체 페이지 디자인 및 퍼블리싱 (반응형)</td>
+            <td>1,200,000</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>테스트/배포</td>
+            <td>QA, 버그 수정, 서버 배포 세팅</td>
+            <td>700,000</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="3" style="text-align:right; letter-spacing:1px;">합 &nbsp; 계</td>
+            <td>11,500,000</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="vat-note">※ 상기 금액은 부가세(VAT) 별도입니다.</p>
+    </div>
+
+    <!-- ===== 3. 기술 스택 ===== -->
+    <div class="section">
+      <div class="section-title">3. 기술 스택</div>
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="tech-label">Frontend</div>
+          <div class="tech-value">Next.js (React)</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-label">Backend</div>
+          <div class="tech-value">Next.js API Routes</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-label">Database</div>
+          <div class="tech-value">Supabase (PostgreSQL)</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-label">Authentication</div>
+          <div class="tech-value">Supabase Auth<br><span style="font-size:8pt;color:#777;">(카카오/네이버 소셜 로그인)</span></div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-label">Hosting</div>
+          <div class="tech-value">Vercel</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-label">Storage</div>
+          <div class="tech-value">Supabase Storage<br><span style="font-size:8pt;color:#777;">(이미지 업로드)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 4. 개발 일정 ===== -->
+    <div class="section">
+      <div class="section-title">4. 개발 일정</div>
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">단계</th>
+            <th>기간</th>
+            <th style="text-align:left;">주요 내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1단계: 기획 및 설계</td>
+            <td>1주</td>
+            <td>요구사항 확정, DB 설계, 화면 설계</td>
+          </tr>
+          <tr>
+            <td>2단계: 핵심 기능 개발</td>
+            <td>3주</td>
+            <td>회원, 캠페인, 신청/선정 프로세스</td>
+          </tr>
+          <tr>
+            <td>3단계: 부가 기능 개발</td>
+            <td>2주</td>
+            <td>마이페이지, 커뮤니티, 알림, 어드민</td>
+          </tr>
+          <tr>
+            <td>4단계: 디자인 적용</td>
+            <td>1주</td>
+            <td>UI/UX 디자인 퍼블리싱</td>
+          </tr>
+          <tr>
+            <td>5단계: 테스트 및 배포</td>
+            <td>1주</td>
+            <td>QA, 버그 수정, 배포</td>
+          </tr>
+          <tr class="total-row">
+            <td style="font-weight:700;">총 기간</td>
+            <td style="font-weight:700; color: var(--accent);">약 8주</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===== 5. 결제 조건 ===== -->
+    <div class="section">
+      <div class="section-title">5. 결제 조건</div>
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>비율</th>
+            <th>금액</th>
+            <th style="text-align:left;">지급 시점</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>착수금</td>
+            <td>30%</td>
+            <td>3,450,000원</td>
+            <td>계약 체결 시</td>
+          </tr>
+          <tr>
+            <td>중도금</td>
+            <td>40%</td>
+            <td>4,600,000원</td>
+            <td>2단계 완료 시</td>
+          </tr>
+          <tr>
+            <td>잔금</td>
+            <td>30%</td>
+            <td>3,450,000원</td>
+            <td>최종 납품 시</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===== 6. 포함 / 불포함 사항 ===== -->
+    <div class="section">
+      <div class="section-title">6. 포함 / 불포함 사항</div>
+      <div class="include-grid">
+        <div class="include-box">
+          <div class="include-box-header incl">포함 사항</div>
+          <ul class="include-list">
+            <li><span class="icon yes">✓</span><span>위 명시된 기능 개발 일체</span></li>
+            <li><span class="icon yes">✓</span><span>소스코드 전체 납품</span></li>
+            <li><span class="icon yes">✓</span><span>배포 세팅 (Vercel + Supabase)</span></li>
+            <li><span class="icon yes">✓</span><span>납품 후 1개월 무상 버그 수정</span></li>
+          </ul>
+        </div>
+        <div class="include-box">
+          <div class="include-box-header excl">불포함 사항</div>
+          <ul class="include-list">
+            <li><span class="icon no">✗</span><span>서버/호스팅 비용 (월 실비 별도)</span></li>
+            <li><span class="icon no">✗</span><span>도메인 비용</span></li>
+            <li><span class="icon no">✗</span><span>납품 후 1개월 이후 유지보수 (별도 계약)</span></li>
+            <li><span class="icon no">✗</span><span>기획 범위 외 추가 기능 개발</span></li>
+            <li><span class="icon no">✗</span><span>콘텐츠 입력 (텍스트, 이미지 등)</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 7. 특이사항 ===== -->
+    <div class="section">
+      <div class="section-title">7. 특이사항</div>
+      <ul class="notes-list">
+        <li>개발 중 기능 추가/변경 시 별도 협의 후 추가 견적 산정</li>
+        <li>주 1회 진행 상황 공유 (온라인 미팅 또는 메시지)</li>
+        <li>최종 산출물: 소스코드 + 배포 완료된 웹사이트 + 관리자 매뉴얼</li>
+      </ul>
+    </div>
+
+    <!-- ===== 하단 서명란 ===== -->
+    <div class="footer-statement">
+      위 내용으로 견적을 제출합니다.
+    </div>
+    <div class="footer-date">
+      2026년 &nbsp;&nbsp; 3월 &nbsp;&nbsp; 25일
+    </div>
+    <div class="signature-area">
+      <div class="signature-box">
+        <div class="signature-box-header">서 &nbsp; 명 &nbsp; 란</div>
+        <div class="signature-fields">
+          <div class="sig-row">
+            <span class="sig-label">상&nbsp;&nbsp;호</span>
+            <span class="sig-line"></span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-label">담당자</span>
+            <span class="sig-line"></span>
+          </div>
+          <div style="text-align:center;">
+            <div class="stamp-area">인&nbsp;감</div>
+            <div style="font-size:7.5pt; color:#aaa;">(인)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">- 1 -</div>
+  </div>
+</body>
+</html>
