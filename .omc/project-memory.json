@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774413430227,
+  "projectRoot": "C:\\Dev\\websit",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.4",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.4",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "8.0.1",
+        "category": "build"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc -b && vite build",
+      "lint": "eslint .",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 7,
+      "lastAccessed": 1774413430153,
+      "keyFiles": [
+        "favicon.svg",
+        "icon-marketing.png",
+        "icons.svg",
+        "oNYTr.png",
+        "tP0aN.png"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1774413430171,
+      "keyFiles": [
+        "App.css",
+        "App.tsx",
+        "index.css",
+        "main.tsx"
+      ]
+    },
+    "src\\assets": {
+      "path": "src\\assets",
+      "purpose": "Static assets",
+      "fileCount": 3,
+      "lastAccessed": 1774413430172,
+      "keyFiles": [
+        "hero.png",
+        "react.svg",
+        "vite.svg"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src\\App.tsx",
+      "accessCount": 213,
+      "lastAccessed": 1774425507916,
+      "type": "file"
+    },
+    {
+      "path": "src\\App.css",
+      "accessCount": 51,
+      "lastAccessed": 1774425204256,
+      "type": "file"
+    },
+    {
+      "path": "src\\index.css",
+      "accessCount": 7,
+      "lastAccessed": 1774425364401,
+      "type": "file"
+    },
+    {
+      "path": "generate-images.mjs",
+      "accessCount": 4,
+      "lastAccessed": 1774420230826,
+      "type": "file"
+    },
+    {
+      "path": "gen-test.mjs",
+      "accessCount": 3,
+      "lastAccessed": 1774421833954,
+      "type": "file"
+    },
+    {
+      "path": "remove-bg.mjs",
+      "accessCount": 3,
+      "lastAccessed": 1774423266391,
+      "type": "file"
+    },
+    {
+      "path": "index.html",
+      "accessCount": 3,
+      "lastAccessed": 1774425398425,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1774423661687,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 1,
+      "lastAccessed": 1774417634386,
+      "type": "directory"
+    },
+    {
+      "path": "fix_faq.py",
+      "accessCount": 1,
+      "lastAccessed": 1774417748204,
+      "type": "file"
+    },
+    {
+      "path": "fix_faq2.py",
+      "accessCount": 1,
+      "lastAccessed": 1774417776869,
+      "type": "file"
+    },
+    {
+      "path": "gen-mascot.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1774422170707,
+      "type": "file"
+    },
+    {
+      "path": "gen-3d-icons.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1774423055696,
+      "type": "file"
+    },
+    {
+      "path": "gen-single.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1774424345011,
+      "type": "file"
+    },
+    {
+      "path": "gen-suit.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1774424726457,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
